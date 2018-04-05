@@ -33,9 +33,9 @@ then a new sound name.
 
 # File Menu Controls
 
-Up / Down (Shift+Down / Down): Navigate Files
-Return: Load the selected file
-=: Create a new file
+* Up / Down (Shift+Down / Down): Navigate Files
+* Return: Load the selected file
+* =: Create a new file
 
 
 # Sound Bank
@@ -46,11 +46,11 @@ looping press 1-3 (based on which channel is playing) to end the
 loop. Press '=' to create a new sound, followed by typing a name
 for the sound. Use up/down to navigate and  Return to edit a sound.
 
-A-W: Test sound
-1-3: Stop loop in channel 1-3
-Up / Down (Shift+Down / Down): Navigate sounds
-Return: Edit the selected sound
-=: Create a new sound
+* A-W: Test sound
+* 1-3: Stop loop in channel 1-3
+* Up / Down (Shift+Down / Down): Navigate sounds
+* Return: Edit the selected sound
+* =: Create a new sound
 
 
 # Sound Edit
@@ -69,18 +69,18 @@ the code that plays sound effects.
 Sound editing is live so anything that is modified while a
 sound is playing will be reflected even if the sound has already started.
 
-=: Toggle a sound register for this event (indicated in leftmost column)
-L: Toggle label for this event (indicated in column 2)
-Space: Play a sound, end loop if sound is already playing.
-Up / Down (Shift+Down / Down): Navigate registers in Sound Event
-Left / Right (Shift+Right / Right): Adjust values lesser/greater
-C= + Left/Right: Adjust high byte of 2 byte values (freq. etc.)
-Return: Start typing in a number for a sound register, duration or name
-N: New event (inserted after current event)
-C= + D: Delete event
-@/*: Go back/forward between sound events
-S: Save all sounds in bank
-C= + E: Export source code for all sound data in bank
+* =: Toggle a sound register for this event (indicated in leftmost column)
+* L: Toggle label for this event (indicated in column 2)
+* Space: Play a sound, end loop if sound is already playing.
+* Up / Down (Shift+Down / Down): Navigate registers in Sound Event
+* Left / Right (Shift+Right / Right): Adjust values lesser/greater
+* C= + Left/Right: Adjust high byte of 2 byte values (freq. etc.)
+* Return: Start typing in a number for a sound register, duration or name
+* N: New event (inserted after current event)
+* C= + D: Delete event
+* @/*: Go back/forward between sound events
+* S: Save all sounds in bank
+* C= + E: Export source code for all sound data in bank
 
 
 # Data format details
@@ -89,13 +89,13 @@ The exported data is very simple, each event is saved starting
 with a frame count until the next event, then a mask byte that
 contains:
 
-$01 - Frequency
-$02 - Pulse
-$04 - Attack / Decay
-$08 - Sustain / Release
-$10 - Control
-$20 - Frequency Slide
-$40 - Pulse Slide
+* \$01 - Frequency
+* \$02 - Pulse
+* \$04 - Attack / Decay
+* \$08 - Sustain / Release
+* \$10 - Control
+* \$20 - Frequency Slide
+* \$40 - Pulse Slide
 
 For each bit in the mask byte the data follows in the same
 order.
@@ -106,12 +106,12 @@ restart the loop.
 
 Exported data sample
 
-BDoing_SND:
-	dc.b $03, $1f, $00, $0a, $f8, $07, $12, $c1, $21
-	dc.b $03, $10, $20
-	dc.b $0b, $7f, $00, $0c, $00, $08, $23, $89, $41, $00, $02, $a0, $ff
-	dc.b $0b, $30, $40, $00, $02
-	dc.b $00
+    BDoing_SND:
+	    dc.b $03, $1f, $00, $0a, $f8, $07, $12, $c1, $21
+	    dc.b $03, $10, $20
+	    dc.b $0b, $7f, $00, $0c, $00, $08, $23, $89, $41, $00, $02, $a0, $ff
+	    dc.b $0b, $30, $40, $00, $02
+	    dc.b $00
 
 
 # Extra Export Labels (hit 'L' in sound edit to toggle)
@@ -132,14 +132,14 @@ sound as if the blades are slowing down or speeding up.
 
 Labels will be exported as the sound name + occurence within
 sound + one of:
-Duration: _DUR
-Frequency: _FRQ
-Pulse: _PLS
-Attack / Decay: _AD
-Sustain / Release: _SR
-Control: _CTL
-Frequency Slide: _FDT
-Pulse Slide: _PDT
+* Duration: _DUR
+* Frequency: _FRQ
+* Pulse: _PLS
+* Attack / Decay: _AD
+* Sustain / Release: _SR
+* Control: _CTL
+* Frequency Slide: _FDT
+* Pulse Slide: _PDT
 
 
 # Playback source
@@ -162,7 +162,7 @@ the other version in an emulator.
 # BDoing?
 
 While working on Pac-Man World 2, Klonoa came out (both are
-Namco games) and we copied one of the mechanics which wass
+Namco games) and we copied one of the mechanics which was
 a platform that shoots you up while the camera looks straight
 down. This was named a BDoing platform.
 
@@ -173,14 +173,14 @@ To iterate on a PC with an emulator I'm using this batch file
 to move sound assets on and off a d64 and move the exported
 source files into another folder.
 
-\vice\c1541 -format bdoing,8 d64 bdoing.d64 -write bdoing.prg @8:bdoing.prg
-for %%i in (assets\*.snd) do \vice\c1541 bdoing.d64 -write %%i @8:%%~ni.snd
-\vice\x64 -moncommands bdoing.vs -remotemonitor bdoing.d64
-IF EXIST tmp rmdir /S /Q tmp
-mkdir tmp
-cd tmp
-\vice\c1541 bdoing.d64 -extract
-cd ..
-move /Y tmp\*.snd assets
-IF EXIST tmp\*.s move /Y tmp\*.s sounds
-rmdir /S /Q tmp
+    \vice\c1541 -format bdoing,8 d64 bdoing.d64 -write bdoing.prg @8:bdoing.prg
+    for %%i in (assets\*.snd) do \vice\c1541 bdoing.d64 -write %%i @8:%%~ni.snd
+    \vice\x64 -moncommands bdoing.vs -remotemonitor bdoing.d64
+    IF EXIST tmp rmdir /S /Q tmp
+    mkdir tmp
+    cd tmp
+    \vice\c1541 bdoing.d64 -extract
+    cd ..
+    move /Y tmp\*.snd assets
+    IF EXIST tmp\*.s move /Y tmp\*.s sounds
+    rmdir /S /Q tmp
