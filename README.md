@@ -1,5 +1,7 @@
 # BDoing Sound Effect Tool for C64/SID
 
+![BDoing Logo](bin/BDoing.jpg)
+
 The SID chip is easy enough to use that you can easily hardcode sound
 effects by just creating the parameters in an array and copy
 that in to the hardware registers for a channel. Unfortunately I don't
