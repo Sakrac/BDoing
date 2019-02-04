@@ -21,6 +21,11 @@ Each sound is stored as a sequence of events. An event is any
 time a channel register should change, such as key on and
 key off.
 
+# Building BDoing
+
+BDoing is intended to be assembled with the [x65 assembler](https://github.com/Sakrac/x65)
+
+    x65 src\bdoing.s bdoing.prg
 
 # Starting BDoing
 
