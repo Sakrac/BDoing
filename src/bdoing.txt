@@ -1,7 +1,5 @@
 # BDoing Sound Effect Tool for C64/SID
 
-![BDoing Logo](bin/BDoing.jpg)
-
 The SID chip is easy enough to use that you can easily hardcode sound
 effects by just creating the parameters in an array and copy
 that in to the hardware registers for a channel. Unfortunately I don't
@@ -32,8 +30,6 @@ a file that is not a sound the directory listing screen will refresh.
 If you create a new file the tool will ask for a new filename and
 then a new sound name.
 
-As an example to work with Vice look at run.bat. This file expects
-to find Vice x64 and c1541 in \\Vice\\.
 
 # File Menu Controls
 
@@ -177,19 +173,14 @@ To iterate on a PC with an emulator I'm using this batch file
 to move sound assets on and off a d64 and move the exported
 source files into another folder.
 
-    del bdoing.d64
-    \vice\c1541 -format #bdoing#,8 d64 bdoing.d64 -write BDoing.prg @8:bdoing
-    for %%i in (example\*.snd) do \vice\c1541 bdoing.d64 -write %%i @8:%%~ni.snd
-    \vice\x64 -remotemonitor BDoing.d64
+    \vice\c1541 -format bdoing,8 d64 bdoing.d64 -write bdoing.prg @8:bdoing.prg
+    for %%i in (assets\*.snd) do \vice\c1541 bdoing.d64 -write %%i @8:%%~ni.snd
+    \vice\x64 -moncommands bdoing.vs -remotemonitor bdoing.d64
     IF EXIST tmp rmdir /S /Q tmp
     mkdir tmp
     cd tmp
-    dir ..\bdoing.d64
-    \vice\c1541 ..\bdoing.d64 -extract
+    \vice\c1541 bdoing.d64 -extract
     cd ..
-    dir tmp
-    move /Y tmp\*.snd example
-    IF EXIST tmp\*.s move /Y tmp\*.s example
+    move /Y tmp\*.snd assets
+    IF EXIST tmp\*.s move /Y tmp\*.s sounds
     rmdir /S /Q tmp
-
-
