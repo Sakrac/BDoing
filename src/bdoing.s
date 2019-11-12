@@ -228,8 +228,9 @@ InputUpper:
 NumOptions:
     ds 1
 
-FilenameSave:
-    ds 3 ; prefix filename with @0: to overwrite file
+FilenameScratch:
+    ds 2 ; prefix filename with S: to overwrite file
+
 Filename:
     ds 16
 
@@ -1970,120 +1971,154 @@ ToggleExportLabel:
     jmp DrawExportLabels
 }
 
+CheckChangeEvents:
+{
+    ; check for changing events
+    ; 5 |   ,  |   @  |   :  |   .  |   -  |   l  |   p  |   +  |
+    ; 6 |   /  |   ^  |   =  |R-SHFT| HOME |   ;  |   *  |   £  |
+    {
+        lda KeyboardBitsChange+5    ; @
+        and #$40
+        beq %
+        ldx CurrEvent
+        dex
+        bmi %
+        txa
+        jsr SetCurrEvent
+        jsr DrawEventValues
+    }
+
+    {
+        zpLocal .zpNext.w
+        lda KeyboardBitsChange+6    ; *
+        and #$02
+        beq %
+        ldx CurrEvent
+        inx
+        lda SoundEventsLo,x
+        sta .zpNext
+        lda SoundEventsHi,x
+        sta .zpNext+1
+        ldy #SoundInt.frames
+        lda (.zpNext),y
+        beq %
+        txa
+        jsr SetCurrEvent
+        jsr DrawEventValues
+    }
+
+    {   ; move up / down unless currently editing the option
+        lda CurrOptionEnter
+        bne %
+        {
+            jsr KeyUp
+            beq %
+            lda #$ff
+            jsr ChangeOption
+        }
+        {
+            jsr KeyDown
+            beq %
+            lda #1
+            jsr ChangeOption
+        }
+
+    { ; = will toggle sound write
+        lda KeyboardBitsChange + 6
+        and #$20 ; "="
+        beq %
+        jsr ToggleControl
+    }
+
+    { ; L will toggle export label
+        lda KeyboardBitsChange + 5
+        and #$04 ; "L"
+        beq %
+        jsr ToggleExportLabel
+    }
+
+    {; n for insert event
+        ; 4 |   n  |   o  |   k  |   m  |   0  |   j  |   i  |   9  |
+        lda KeyboardBitsChange + 4
+        and #$80 ; "n"
+        beq %
+        jsr InsertEvent
+    }
+
+    { ; s will save a sound event
+        lda KeyboardBitsChange+1
+        and #$20
+        beq %
+        jsr SaveSoundFile
+    }
+
+    { ; c= + e will export
+        ; 7 | STOP |   q  |  C=  |SPACE |   2  | CTRL |  <-  |   1  |
+        lda KeyboardBits+7
+        and #$20
+        beq %
+        {
+            ; 1 |L-SHFT|   e  |   s  |   z  |   4  |   a  |   w  |   3  |
+            lda KeyboardBitsChange+1
+            and #$40
+            beq %
+            jsr WriteBackSound
+            lda #0
+            sta CurrentExportType
+            jsr ExportSounds
+        }
+
+        { ; c= + d will delete a sound event
+            ; 2 |   x  |   t  |   f  |   c  |   6  |   d  |   r  |   5  |
+            lda KeyboardBitsChange+2
+            and #$04
+            beq %
+            jsr DeleteEvent
+        }
+
+    }
+    rts
+}
+
 UpdateMenu:
 {
     {   ; check for keyboard input unless entering something
         ldx CurrOptionEnter
         bne %
-        ; check for changing events
-        ; 5 |   ,  |   @  |   :  |   .  |   -  |   l  |   p  |   +  |
-        ; 6 |   /  |   ^  |   =  |R-SHFT| HOME |   ;  |   *  |   £  |
-        {
-            lda KeyboardBitsChange+5    ; @
-            and #$40
-            beq %
-            ldx CurrEvent
-            dex
-            bmi %
-            txa
-            jsr SetCurrEvent
-            jsr DrawEventValues
-        }
-
-        {
-            zpLocal .zpNext.w
-            lda KeyboardBitsChange+6    ; *
-            and #$02
-            beq %
-            ldx CurrEvent
-            inx
-            lda SoundEventsLo,x
-            sta .zpNext
-            lda SoundEventsHi,x
-            sta .zpNext+1
-            ldy #SoundInt.frames
-            lda (.zpNext),y
-            beq %
-            txa
-            jsr SetCurrEvent
-            jsr DrawEventValues
-        }
-
-        {   ; move up / down unless currently editing the option
-            lda CurrOptionEnter
-            bne %
-            {
-                jsr KeyUp
-                beq %
-                lda #$ff
-                jsr ChangeOption
-            }
-            {
-                jsr KeyDown
-                beq %
-                lda #1
-                jsr ChangeOption
-            }
-
-        { ; = will toggle sound write
-            lda KeyboardBitsChange + 6
-            and #$20 ; "="
-            beq %
-            jsr ToggleControl
-        }
-
-        { ; L will toggle export label
-            lda KeyboardBitsChange + 5
-            and #$04 ; "L"
-            beq %
-            jsr ToggleExportLabel
-        }
-
-        {; n for insert event
-            ; 4 |   n  |   o  |   k  |   m  |   0  |   j  |   i  |   9  |
-            lda KeyboardBitsChange + 4
-            and #$80 ; "n"
-            beq %
-            jsr InsertEvent
-        }
-
-        { ; s will save a sound event
-            lda KeyboardBitsChange+1
-            and #$20
-            beq %
-            jsr SaveSoundFile
-        }
-
-        { ; c= + e will export
-            ; 7 | STOP |   q  |  C=  |SPACE |   2  | CTRL |  <-  |   1  |
-            lda KeyboardBits+7
-            and #$20
-            beq %
-            {
-                ; 1 |L-SHFT|   e  |   s  |   z  |   4  |   a  |   w  |   3  |
-                lda KeyboardBitsChange+1
-                and #$40
-                beq %
-                jsr WriteBackSound
-                lda #0
-                sta CurrentExportType
-                jsr ExportSounds
-            }
-
-            { ; c= + d will delete a sound event
-                ; 2 |   x  |   t  |   f  |   c  |   6  |   d  |   r  |   5  |
-                lda KeyboardBitsChange+2
-                and #$04
-                beq %
-                jsr DeleteEvent
-            }
-
-        }
+        jsr CheckChangeEvents
     }
 
     ldx CurrOption
+    {
+        cpx #NumMenus
+        bcc %
+        rts
+    }
+    lda MenuLo,x
+    sta .func
+    lda MenuHi,x
+    sta .func+1
+.func = *+1
+    jmp *
+}
+
+MenuLo:
+    dc.b <UpdateMenuName, <UpdateMenuFrames, <UpdateMenuFrequency
+    dc.b <UpdateMenuPulse, <UpdateMenuKeyOn, <UpdateMenuDisable
+    dc.b <UpdateMenuType, <UpdateMenuAttack, <UpdateMenuDecay
+    dc.b <UpdateMenuSustain, <UpdateMenuRelease, <UpdateMenuFreqDelta
+    dc.b <UpdateMenuPulseDelta, <UpdateMenuLoop
+MenuHi:
+    dc.b >UpdateMenuName, >UpdateMenuFrames, >UpdateMenuFrequency
+    dc.b >UpdateMenuPulse, >UpdateMenuKeyOn, >UpdateMenuDisable
+    dc.b >UpdateMenuType, >UpdateMenuAttack, >UpdateMenuDecay
+    dc.b >UpdateMenuSustain, >UpdateMenuRelease, >UpdateMenuFreqDelta
+    dc.b >UpdateMenuPulseDelta, >UpdateMenuLoop
+
+const NumMenus = * - MenuHi
+
+UpdateMenuName:
     {   ; NAME
-        bne %
         ldx #<SoundNameInputScreen
         lda #>SoundNameInputScreen
         ldy #14
@@ -2103,11 +2138,9 @@ UpdateMenu:
             }
         }
         rts
-        
     }
+UpdateMenuFrames:
     {   ; FRAMES
-        dex
-        bne %
         {
             ldx CurrOptionEnter
             bne %
@@ -2145,9 +2178,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuFrequency:
     {   ; FREQ
-        dex
-        bne %
         {
             ldx CurrOptionEnter
             bne %
@@ -2173,9 +2206,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuPulse:
     {   ; PULS
-        dex
-        bne %
         {
             ldx CurrOptionEnter
             bne %
@@ -2201,9 +2234,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuKeyOn:
     {   ; KEY
-        dex
-        bne %
         {
             lda KeyboardBitsChange
             and #$04
@@ -2215,9 +2248,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuDisable:
     {   ; DIS
-        dex
-        bne %
         {
             lda KeyboardBitsChange
             and #$04
@@ -2229,9 +2262,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuType:
     {   ; TYPE
-        dex
-        bne %
         ;KeyboardBits + 0 & 0x4
         {
             lda KeyboardBitsChange
@@ -2257,9 +2290,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuAttack:
     {   ; ATAK
-        dex
-        bne %
         {
             lda KeyboardBitsChange
             and #$04
@@ -2282,9 +2315,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuDecay:
     {   ; DCAY
-        dex
-        bne %
         {
             zpLocal .zpVal
             lda KeyboardBitsChange
@@ -2311,9 +2344,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuSustain:
     {   ; SUST
-        dex
-        bne %
         {
             lda KeyboardBitsChange
             and #$04
@@ -2336,9 +2369,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuRelease:
     {   ; REL
-        dex
-        bne %
         {
             zpLocal .zpVal
             lda KeyboardBitsChange
@@ -2365,9 +2398,9 @@ UpdateMenu:
         }
         rts
     }
+
+UpdateMenuFreqDelta:
     {   ; FREQ DELTA
-        dex
-        bne %
         {
             ldx CurrOptionEnter
             bne %
@@ -2376,28 +2409,26 @@ UpdateMenu:
             bcc %
             jmp DrawValueDeltaFreq
         }
+        ldx #<FreqDeltaInputScreen
+        lda #>FreqDeltaInputScreen
+        ldy #14
+        jsr SetInputScreen
         {
+            lda #4
+            jsr UpdateInputString
+            bcc %
             ldx #<FreqDeltaInputScreen
             lda #>FreqDeltaInputScreen
-            ldy #14
-            jsr SetInputScreen
-            {
-                lda #4
-                jsr UpdateInputString
-                bcc %
-                ldx #<FreqDeltaInputScreen
-                lda #>FreqDeltaInputScreen
-                jsr InputToHex
-                ldy #SoundInt.deltaFreq
-                jsr SetEventValue2
-                jsr DrawValueDeltaFreq
-            }
-            rts
+            jsr InputToHex
+            ldy #SoundInt.deltaFreq
+            jsr SetEventValue2
+            jsr DrawValueDeltaFreq
         }
+        rts
     }
+
+UpdateMenuPulseDelta:
     {   ; PULSE DELTA
-        dex
-        bne %
         {
             ldx CurrOptionEnter
             bne %
@@ -2406,28 +2437,26 @@ UpdateMenu:
             bcc %
             jmp DrawValueDeltaPulse
         }
+        ldx #<PulseDeltaInputScreen
+        lda #>PulseDeltaInputScreen
+        ldy #14
+        jsr SetInputScreen
         {
+            lda #4
+            jsr UpdateInputString
+            bcc %
             ldx #<PulseDeltaInputScreen
             lda #>PulseDeltaInputScreen
-            ldy #14
-            jsr SetInputScreen
-            {
-                lda #4
-                jsr UpdateInputString
-                bcc %
-                ldx #<PulseDeltaInputScreen
-                lda #>PulseDeltaInputScreen
-                jsr InputToHex
-                ldy #SoundInt.deltaPulse
-                jsr SetEventValue2
-                jsr DrawValueDeltaPulse
-            }
-            rts
+            jsr InputToHex
+            ldy #SoundInt.deltaPulse
+            jsr SetEventValue2
+            jsr DrawValueDeltaPulse
         }
+        rts
     }
+
+UpdateMenuLoop:
     {   ; LOOP
-        dex
-        bne %
         lda CurrEvent
         beq %
         lda KeyboardBitsChange
@@ -2459,8 +2488,8 @@ UpdateMenu:
         }
         jsr DrawTimeline
         jmp DrawValueLoop
+        rts
     }
-    rts
 }
 
 ; Z set: no change
@@ -3488,12 +3517,10 @@ StartFileMenu:
         bpl !
     }
 
-    lda #$40
-    sta FilenameSave
-    lda #$30
-    sta FilenameSave+1
+    lda #$53
+    sta FilenameScratch
     lda #$3a
-    sta FilenameSave+2
+    sta FilenameScratch+1
 
     ldx #<DirFiles
     lda #>DirFiles
@@ -3723,6 +3750,7 @@ NewFileName:
     sta $d020
 
     jsr InputNewOptionLine
+    debugbreak
 
     lda #13
     sta $d020
@@ -3742,8 +3770,60 @@ NewFileName:
         sta Filename,y
         jmp !
     }
+
+    ; make sure filename ends with .snd
+    ldx #0  ; x = len
+    {
+        lda Filename,x
+        beq %
+        inx
+        cpx #16
+        bcc !
+    }
+    ; find last '.'
+    txa
+    tay
+    {
+        dey
+        bmi %
+        lda Filename,y
+        cmp #$2e ; '.'
+        bne !
+    }
+    ; if y < 0 then no dot, otherwise last dot at y
+    {
+        tya
+        bpl .hasDot
+        txa
+        tay
+.hasDot
+        {
+            cpy #16-4
+            bcc %
+            ldy #16-4
+        }
+        ldx #0
+        {
+            lda .soundExt,x
+            sta Filename,y
+            iny
+            inx
+            cpx #4
+            bcc !
+        }
+        {   ; terminate filename
+            cpy #16
+            bcs %
+            lda #0
+            sta Filename,y
+        }
+    }
     rts
+.soundExt
+    TEXT ".SND"
 }
+
+
 
 InputNewOptionLine:
 {
@@ -3822,6 +3902,35 @@ const MemCpyTrg = *+1
     rts
 }
 
+; Filename is the current filename
+; a = length (preserved)
+ScratchFile:
+{
+    pha
+    clc
+    adc #2
+    ldx #<FilenameScratch
+    ldy #>FilenameScratch
+
+    cli
+
+    jsr SETNAM     ; call SETNAM
+    {
+        lda #1
+        ldy #$15
+        ldx $ba       ; last used device number
+        bne %
+        ldx #8      ; default to device 8
+    }
+    jsr SETLFS     ; call SETLFS
+
+    jsr OPEN      ; call OPEN (open the directory)
+    lda #1
+    jsr CLOSE
+    pla
+    rts
+}
+
 SaveSoundFile:
 {
     lda #13
@@ -3829,15 +3938,16 @@ SaveSoundFile:
     jsr WriteBackSound
     ldx #0
     {
-        lda FilenameSave,x
+        lda Filename,x
         beq %
         inx
-        cpx #16+3
+        cpx #16
         bcc !
     }
     txa
-    ldx #<FilenameSave
-    ldy #>FilenameSave
+    jsr ScratchFile
+    ldx #<Filename
+    ldy #>Filename
 
     cli
 
@@ -4456,7 +4566,7 @@ MakeNTSCEvent:
 ExportSaveFile:
     ldx #0
     {
-        lda FilenameSave,x
+        lda Filename,x
         beq %
         cmp #$2e,x
         beq %
@@ -4464,28 +4574,30 @@ ExportSaveFile:
         cpx #16
         bcc !
     }
-    lda FilenameSave,x
+    lda Filename,x
     pha
     lda #$2e
-    sta FilenameSave,x
+    sta Filename,x
     inx
-    lda FilenameSave,x
+    lda Filename,x
     pha
     lda #$53
-    sta FilenameSave,x
+    sta Filename,x
     inx
     txa
     pha
-    ldx #<FilenameSave
-    ldy #>FilenameSave
+
+    jsr ScratchFile
+    ldx #<Filename
+    ldy #>Filename
     cli
 
     jsr SETNAM     ; call SETNAM
     lda #0
     ldx $ba       ; last used device number
-    bne .skip
+    bne .skip2
     ldx #8      ; default to device 8
-.skip
+.skip2
     ldy #$00
     jsr SETLFS     ; call SETLFS
 
@@ -4506,10 +4618,10 @@ ExportSaveFile:
     tax
     dex
     pla
-    sta FilenameSave,x
+    sta FilenameScratch,x
     dex
     pla
-    sta FilenameSave,x
+    sta FilenameScratch,x
 
     lda #14
     sta $d020
@@ -4868,14 +4980,6 @@ const SoundBankListScreen = SoundBankMenuTop + 2
 const SoundBankMenuTitle = $400+23*40
 const SoundBankReturnInfo = $400+24*40
 
-;SoundBankMenuTitleStr:
-;                  ;0123456789012345678901234567890123456789
-;    TEXT [petsci] "Select to edit, = for new or key to test"
-;
-;SoundBankMenuReturnStr:
-;                  ;0123456789012345678901234567890123456789
-;    TEXT [petsci] "           C= + * to return to file menu"
-;    dc.b $ff
                   ;0123456789012345678901234567890123456789
 SoundBankMenuInfo1:
     TEXT [petsci] "Test:A-W     End Loop:1-3    Nav:Up/Down"
